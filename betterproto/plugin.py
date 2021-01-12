@@ -76,8 +76,14 @@ def get_ref_type(package: str, imports: set, type_name: str) -> str:
         # to use a forward ref and we need to add the import.
         parts = type_name.split(".")
         parts[-1] = stringcase.pascalcase(parts[-1])
-        imports.add(f"from .{'.'.join(parts[:-2])} import {parts[-2]}")
-        type_name = f"{parts[-2]}.{parts[-1]}"
+
+        # parts looks like ["path", "to", "proto", SomeThing]
+        # we want the alias to be "path_to_proto"
+        alias = "_".join(parts[0 : len(parts) - 1])
+
+        imports.add(f"from .{'.'.join(parts[:-2])} import {parts[-2]} as {alias}")
+        type_name = f"{alias}.{parts[-1]}"  # f"{parts[-2]}.{parts[-1]}"
+        print(f"TYPE NAME: {type_name} | {parts} | {alias}", file=sys.stderr)
 
     return type_name
 
@@ -122,7 +128,7 @@ def get_py_zero(type_num: int) -> str:
 
 
 def traverse(proto_file):
-    def _traverse(path, items, prefix = ''):
+    def _traverse(path, items, prefix=""):
         for i, item in enumerate(items):
             # Adjust the name since we flatten the heirarchy.
             item.name = next_prefix = prefix + item.name
