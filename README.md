@@ -1,5 +1,5 @@
-# Clear Street fork
-The `clst` branch is based off the `v1.2.3` with commit has `ce9f492f506af347e2e4f54c33077b3f579d19bb`. 
+# Clear Street Fork
+The `clst` branch is based off the `v1.2.3` tag with commit has `ce9f492f506af347e2e4f54c33077b3f579d19bb`. 
 
 # Better Protobuf / gRPC Support for Python
 
