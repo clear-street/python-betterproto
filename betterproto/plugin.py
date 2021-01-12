@@ -82,8 +82,8 @@ def get_ref_type(package: str, imports: set, type_name: str) -> str:
         alias = "_".join(parts[0 : len(parts) - 1])
 
         imports.add(f"from .{'.'.join(parts[:-2])} import {parts[-2]} as {alias}")
-        type_name = f"{alias}.{parts[-1]}"  # f"{parts[-2]}.{parts[-1]}"
-        print(f"TYPE NAME: {type_name} | {parts} | {alias}", file=sys.stderr)
+        type_name = f"{alias}.{parts[-1]}"
+        # print(f"TYPE NAME: {type_name} | {parts} | {alias}", file=sys.stderr)
 
     return type_name
 
