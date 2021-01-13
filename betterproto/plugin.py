@@ -6,7 +6,7 @@ import os.path
 import re
 import sys
 import textwrap
-from typing import Any, List, Tuple
+from typing import Any, List, Tuple, Dict
 
 try:
     import black
@@ -400,6 +400,16 @@ def generate_code(request, response):
         output["imports"] = sorted(output["imports"])
         output["datetime_imports"] = sorted(output["datetime_imports"])
         output["typing_imports"] = sorted(output["typing_imports"])
+
+        # Fail if duplicate aliases are found
+        aliases: Dict[str] = dict()
+        for import_str in output["imports"]:
+            alias = import_str.split(" as ")[1]
+            if alias in aliases:
+                sys.exit(
+                    f"FATAL ERROR: duplicate aliases '{alias}' detected in the same file. Imports:\n\t{import_str}\n\t{aliases[alias]}"
+                )
+            aliases[alias] = import_str
 
         # Fill response
         f = response.file.add()
