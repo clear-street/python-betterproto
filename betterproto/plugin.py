@@ -6,7 +6,7 @@ import os.path
 import re
 import sys
 import textwrap
-from typing import Any, List, Tuple
+from typing import Any, List, Tuple, Dict
 
 try:
     import black
@@ -76,8 +76,14 @@ def get_ref_type(package: str, imports: set, type_name: str) -> str:
         # to use a forward ref and we need to add the import.
         parts = type_name.split(".")
         parts[-1] = stringcase.pascalcase(parts[-1])
-        imports.add(f"from .{'.'.join(parts[:-2])} import {parts[-2]}")
-        type_name = f"{parts[-2]}.{parts[-1]}"
+
+        # parts looks like ["path", "to", "proto", SomeThing]
+        # we want the alias to be "path_to_proto"
+        alias = "_".join(parts[0 : len(parts) - 1])
+
+        imports.add(f"from .{'.'.join(parts[:-2])} import {parts[-2]} as {alias}")
+        type_name = f"{alias}.{parts[-1]}"
+        # print(f"TYPE NAME: {type_name} | {parts} | {alias}", file=sys.stderr)
 
     return type_name
 
@@ -122,7 +128,7 @@ def get_py_zero(type_num: int) -> str:
 
 
 def traverse(proto_file):
-    def _traverse(path, items, prefix = ''):
+    def _traverse(path, items, prefix=""):
         for i, item in enumerate(items):
             # Adjust the name since we flatten the heirarchy.
             item.name = next_prefix = prefix + item.name
@@ -394,6 +400,16 @@ def generate_code(request, response):
         output["imports"] = sorted(output["imports"])
         output["datetime_imports"] = sorted(output["datetime_imports"])
         output["typing_imports"] = sorted(output["typing_imports"])
+
+        # Fail if duplicate aliases are found
+        aliases: Dict[str] = dict()
+        for import_str in output["imports"]:
+            alias = import_str.split(" as ")[1]
+            if alias in aliases:
+                sys.exit(
+                    f"FATAL ERROR: duplicate aliases '{alias}' detected in the same file. Imports:\n\t{import_str}\n\t{aliases[alias]}"
+                )
+            aliases[alias] = import_str
 
         # Fill response
         f = response.file.add()
