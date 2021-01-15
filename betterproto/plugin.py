@@ -63,8 +63,10 @@ def get_ref_type(package: str, imports: set, type_name: str) -> str:
     if type_name == "google.protobuf.Timestamp":
         return "datetime"
 
+    print(f"type_name: {type_name}, package: {package}", file=sys.stderr)
     if type_name.startswith(package):
         parts = type_name.lstrip(package).lstrip(".").split(".")
+        print(f"parts: {parts}", file=sys.stderr)
         if len(parts) == 1 or (len(parts) > 1 and parts[0][0] == parts[0][0].upper()):
             # This is the current package, which has nested types flattened.
             # foo.bar_thing => FooBarThing
@@ -79,11 +81,20 @@ def get_ref_type(package: str, imports: set, type_name: str) -> str:
 
         # parts looks like ["path", "to", "proto", SomeThing]
         # we want the alias to be "path_to_proto"
-        alias = "_".join(parts[0 : len(parts) - 1])
 
-        imports.add(f"from .{'.'.join(parts[:-2])} import {parts[-2]} as {alias}")
-        type_name = f"{alias}.{parts[-1]}"
-        # print(f"TYPE NAME: {type_name} | {parts} | {alias}", file=sys.stderr)
+        # Special case to handle nested types
+        # If the second form last 'part' starts with a capital letter
+        # naively assume it comes from a nested type
+        if parts[-2][0].isupper():
+            print("Assuming nested!", file=sys.stderr)
+            alias = "_".join(parts[0 : len(parts) - 2])
+            imports.add(f"from .{'.'.join(parts[:-3])} import {parts[-3]} as {alias}")
+            type_name = f"{alias}.{parts[-2]}{parts[-1]}"
+        else:
+            alias = "_".join(parts[0 : len(parts) - 1])
+            imports.add(f"from .{'.'.join(parts[:-2])} import {parts[-2]} as {alias}")
+            type_name = f"{alias}.{parts[-1]}"
+        print(f"TYPE NAME: {type_name} | {parts} | {alias}", file=sys.stderr)
 
     return type_name
 
@@ -104,6 +115,7 @@ def py_type(
         return "str"
     elif descriptor.type in [11, 14]:
         # Type referencing another defined Message or a named enum
+        print(f"py_type -> get_ref_type: {descriptor.type_name}", file=sys.stderr)
         return get_ref_type(package, imports, descriptor.type_name)
     elif descriptor.type == 12:
         return "bytes"
@@ -237,6 +249,7 @@ def generate_code(request, response):
                     )
 
                     for i, f in enumerate(item.field):
+                        # print(f"non-map py_type: {item}", file=sys.stderr)
                         t = py_type(package, output["imports"], item, f)
                         zero = get_py_zero(f.type)
 
@@ -266,7 +279,7 @@ def generate_code(request, response):
                                         == map_entry
                                     ):
                                         if nested.options.map_entry:
-                                            # print("Found a map!", file=sys.stderr)
+                                            print("Found a map!", file=sys.stderr)
                                             k = py_type(
                                                 package,
                                                 output["imports"],
@@ -361,6 +374,9 @@ def generate_code(request, response):
                 for j, method in enumerate(service.method):
                     if method.client_streaming:
                         raise NotImplementedError("Client streaming not yet supported")
+
+                    print(f"method.input_type -> get_ref_type: {method.input_type}", file=sys.stderr)
+                    print(f"method.output_type -> get_ref_type: {method.output_type}", file=sys.stderr)
 
                     input_message = None
                     input_type = get_ref_type(
