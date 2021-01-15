@@ -60,6 +60,7 @@ TYPE_STRING = "string"
 TYPE_BYTES = "bytes"
 TYPE_MESSAGE = "message"
 TYPE_MAP = "map"
+TYPE_LIST = "list"
 
 
 # Fields that use a fixed amount of space (4 or 8 bytes)

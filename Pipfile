@@ -10,6 +10,8 @@ isort = "*"
 pytest = "*"
 rope = "*"
 v = {editable = true,version = "*"}
+black = "*"
+pylint = "*"
 
 [packages]
 protobuf = "*"
